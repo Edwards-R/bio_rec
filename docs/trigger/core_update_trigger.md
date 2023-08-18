@@ -10,4 +10,13 @@ Only core field updates trigger this function
  * lower/upper bound date
 
 ### Shorter version
-The trigger clones the target record when specific attributes are modified. It then applies the change to said clone. This works with the import routine to stop wrong data repeatedly entering the database.
+The trigger clones the target record when specific attributes are modified. This clone is then
+ - marked as suspended
+ - current_id set to the original record's id
+ - given the suspend reason
+ - saved into the database
+
+The original record is then:
+ - modified as per user's wishes
+ - on_update timestamp/user updated
+ - suspend_reason cleared (see 'old clone' for the suspend reason)
