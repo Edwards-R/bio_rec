@@ -3,7 +3,7 @@
 ## What is it?
 This is a template biological occurrence recording database which works at a *very* low level. It won't do everything out of the box, so be warned. However, it *is* universally applicable and designed to be extensible to specialisations, which makes it better than anything else I've seen so far.
 
-Best used with `nonoms` to handle your nomenclature.
+Used with `nonoms` to handle your nomenclature.
 
 ## Special features
 
