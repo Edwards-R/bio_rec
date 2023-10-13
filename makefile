@@ -1,5 +1,5 @@
 EXTENSION = biorec
-EXTVERSION = 0.0.1
+EXTVERSION = 0.0.3
 
 # This looks for a target. If it can't find it, it makes it
 DATA = $(EXTENSION)--$(EXTVERSION).sql

@@ -8,7 +8,6 @@ BEGIN
 (
     id integer NOT NULL,
     current_id integer NOT NULL,
-    is_suspended boolean NOT NULL,
     nik integer NOT NULL,
     easting integer NOT NULL,
     northing integer NOT NULL,

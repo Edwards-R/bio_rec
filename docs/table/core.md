@@ -13,7 +13,6 @@ Do not add fields to this table without *serious* consideration. Additional fiel
 |---------|----|-----------|
 |id|int|Auto-generated primary key of the record|
 |current_id|int|The id of the current interpretation of this record|
-|is_suspended|boolean|Is this record currently suspended? Worded this way so that it is possible to use `if (sum (is_suspended) > 0)`  on aggregate queries to identify duplicates of suspended data.|
 |nik|int|Nomenclatural Indentification Key - the primary key of the NoNomS entry that this record relates to. Note that this is confined to a single predefined level and cannot handle multiple levels|
 |easting|int|The minimum easting, in datum units, of the record's cell|
 |northing|int|The minimum northing, in datum units, of the record's cell|

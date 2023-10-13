@@ -2,9 +2,9 @@
 
 
 ## Signature
-    create_soft_stub(
-        IN table_name TEXT
-    )
+create_soft_stub(
+    IN table_name TEXT
+)
 
 ## Arguments
 
