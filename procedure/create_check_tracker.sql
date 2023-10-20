@@ -10,5 +10,21 @@ BEGIN
         is_suspended boolean NOT NULL,
         notes text
     );
+
+    CREATE INDEX id ON @extschema@.check_tracker(id);
+    CREATE INDEX core_id ON @extschema@.check_tracker(core_id);
+
+    -- Add a view to display the *current* status of any record
+    CREATE VIEW @extschema@.check_current AS(
+        WITH pick AS (
+            SELECT max(id) as id
+            FROM @extschema@.check_tracker
+            GROUP BY core_id
+        )
+
+        SELECT core_id, is_suspended
+        FROM @extschema@.check_tracker
+        JOIN pick on check_tracker.id=pick.id
+    );
 END;
 $BODY$;
