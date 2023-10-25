@@ -15,7 +15,6 @@ BEGIN
     datum integer NOT NULL,
     lower_date date NOT NULL,
     upper_date date NOT NULL,
-    suspend_reason text COLLATE pg_catalog."default",
     added_on timestamp with time zone NOT NULL DEFAULT now(),
     modified_on timestamp with time zone NOT NULL DEFAULT now(),
     added_by TEXT NOT NULL DEFAULT session_user,
