@@ -6,11 +6,11 @@ CREATE OR REPLACE FUNCTION core_update_trigger()
 AS $BODY$
 
 DECLARE
-	new_record_id integer;
+	trap_id INTEGER;
 BEGIN
     -- Check that the record can indeed be modified in this way i.e. record is not already a parent
 	IF OLD.id != OLD.current_id THEN
-		RAISE EXCEPTION 'Cannot modify a parent record, please modify child';
+		RAISE EXCEPTION 'Cannot modify a non-current record, please modify the current one if needed';
 	END IF;
 
     -- Add a copy of the old to the database and point it to the new
@@ -40,18 +40,10 @@ BEGIN
         OLD.modified_by,
         OLD.added_by,
         OLD.added_on
-    ) RETURNING id INTO new_record_id;
+    ) RETURNING id INTO trap_id;
 
-    -- Set the 'is_suspended' to true for this new record
-    INSERT INTO @extschema@.check_tracker(
-        core_id,
-        is_suspended,
-        notes
-    ) VALUES (
-        new_record_id,
-        true,
-        'Non-current record'
-    );
+    -- Set the trap record to be suspended
+    INSERT INTO @extschema@.check_tracker(core_id, is_suspended, notes) VALUES (old.core_id, true, 'Trap record');
 
     -- Set modification details
     NEW.modified_by = session_user;

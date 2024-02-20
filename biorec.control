@@ -1,3 +1,7 @@
 relocatable=false
+<<<<<<< HEAD
 default_version = '0.0.6'
+=======
+default_version = '0.0.4'
+>>>>>>> 91c974f6aa142543bff54a0e75f74cd15a84f882
 requires = 'nonoms'
