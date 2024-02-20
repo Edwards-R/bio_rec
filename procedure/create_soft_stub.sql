@@ -10,12 +10,19 @@ AS $BODY$
 DECLARE
 
 BEGIN
-    EXECUTE format(
-        'CREATE TABLE IF NOT EXISTS @extschema@.%I (
+    EXECUTE format('
+        CREATE TABLE IF NOT EXISTS @extschema@.%I (
             id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
             core_id integer NOT NULL REFERENCES @extschema@.core(id) -- Lock the fk to the pk directly
         );',
         tablename
     );
+
+    EXECUTE format('
+        CREATE INDEX core_id ON @extschema@.%I (core_id)
+        );',
+        tablename
+    );
+    
 END;
 $BODY$;

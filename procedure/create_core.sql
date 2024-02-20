@@ -15,7 +15,6 @@ BEGIN
     datum integer NOT NULL,
     lower_date date NOT NULL,
     upper_date date NOT NULL,
-    suspend_reason text COLLATE pg_catalog."default",
     added_on timestamp with time zone NOT NULL DEFAULT now(),
     modified_on timestamp with time zone NOT NULL DEFAULT now(),
     added_by TEXT NOT NULL DEFAULT session_user,
@@ -39,6 +38,11 @@ ALTER TABLE @extschema@.core ALTER COLUMN id SET DEFAULT nextval('@extschema@.co
 ALTER TABLE @extschema@.core ALTER COLUMN current_id SET DEFAULT currval('@extschema@.core_id_seq'::regclass);
 
 --Indexes
+CREATE INDEX IF NOT EXISTS core_id
+    ON @extschema@.core USING btree
+    (id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
 CREATE INDEX IF NOT EXISTS core_lower_date
     ON @extschema@.core USING btree
     (lower_date ASC NULLS LAST)
