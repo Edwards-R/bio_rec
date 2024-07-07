@@ -18,6 +18,7 @@ BEGIN
         tablename
     );
 
+    -- index on the core_id to make things faster
     EXECUTE format('
         CREATE INDEX core_id ON @extschema@.%I (core_id)
         );',

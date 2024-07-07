@@ -6,11 +6,11 @@ CREATE OR REPLACE FUNCTION core_update_trigger()
 AS $BODY$
 
 DECLARE
-	new_record_id integer;
+	trap_id INTEGER;
 BEGIN
     -- Check that the record can indeed be modified in this way i.e. record is not already a parent
 	IF OLD.id != OLD.current_id THEN
-		RAISE EXCEPTION 'Cannot modify a parent record, please modify child';
+		RAISE EXCEPTION 'Cannot modify a non-current record, please modify the current one if needed';
 	END IF;
 
     -- Add a copy of the old to the database and point it to the new
@@ -40,18 +40,10 @@ BEGIN
         OLD.modified_by,
         OLD.added_by,
         OLD.added_on
-    ) RETURNING id INTO new_record_id;
+    ) RETURNING id INTO trap_id;
 
-    -- Set the 'is_suspended' to true for this new record
-    INSERT INTO @extschema@.check_tracker(
-        core_id,
-        is_suspended,
-        notes
-    ) VALUES (
-        new_record_id,
-        true,
-        'Non-current record'
-    );
+    -- Set the trap record to be suspended
+    INSERT INTO @extschema@.check_tracker(core_id, is_suspended, notes) VALUES (old.core_id, true, 'Trap record');
 
     -- Set modification details
     NEW.modified_by = session_user;
@@ -72,13 +64,20 @@ AS $BODY$
 DECLARE
 
 BEGIN
-    EXECUTE format(
-        'CREATE TABLE IF NOT EXISTS @extschema@.%I (
+    EXECUTE format('
+        CREATE TABLE IF NOT EXISTS @extschema@.%I (
             id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
             core_id integer NOT NULL REFERENCES @extschema@.core(id) -- Lock the fk to the pk directly
         );',
         tablename
     );
+
+    EXECUTE format('
+        CREATE INDEX core_id ON @extschema@.%I (core_id)
+        );',
+        tablename
+    );
+    
 END;
 $BODY$;CREATE OR REPLACE PROCEDURE create_core()
 LANGUAGE 'plpgsql'
@@ -120,6 +119,11 @@ ALTER TABLE @extschema@.core ALTER COLUMN id SET DEFAULT nextval('@extschema@.co
 ALTER TABLE @extschema@.core ALTER COLUMN current_id SET DEFAULT currval('@extschema@.core_id_seq'::regclass);
 
 --Indexes
+CREATE INDEX IF NOT EXISTS core_id
+    ON @extschema@.core USING btree
+    (id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
 CREATE INDEX IF NOT EXISTS core_lower_date
     ON @extschema@.core USING btree
     (lower_date ASC NULLS LAST)
@@ -151,7 +155,24 @@ BEGIN
         id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
         core_id integer NOT NULL REFERENCES @extschema@.core(id), -- Lock the fk to the pk directly
         is_suspended boolean NOT NULL,
+        timestamp timestamp with time zone NOT NULL DEFAULT now(),
         notes text
+    );
+
+    CREATE INDEX id ON @extschema@.check_tracker(id);
+    CREATE INDEX core_id ON @extschema@.check_tracker(core_id);
+
+    -- Add a view to display the *current* status of any record
+    CREATE VIEW @extschema@.check_current AS(
+        WITH pick AS (
+            SELECT max(id) as id
+            FROM @extschema@.check_tracker
+            GROUP BY core_id
+        )
+
+        SELECT core_id, is_suspended
+        FROM @extschema@.check_tracker
+        JOIN pick on check_tracker.id=pick.id
     );
 END;
 $BODY$;
