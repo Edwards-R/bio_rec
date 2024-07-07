@@ -72,9 +72,10 @@ BEGIN
         tablename
     );
 
+    -- index on the core_id to make things faster
     EXECUTE format('
-        CREATE INDEX core_id ON @extschema@.%I (core_id)
-        );',
+        CREATE INDEX ON @extschema@.%I (core_id);
+        ',
         tablename
     );
     
@@ -159,8 +160,8 @@ BEGIN
         notes text
     );
 
-    CREATE INDEX id ON @extschema@.check_tracker(id);
-    CREATE INDEX core_id ON @extschema@.check_tracker(core_id);
+    CREATE INDEX check_tracker_id ON @extschema@.check_tracker(id);
+    CREATE INDEX check_tracker_core_id ON @extschema@.check_tracker(core_id);
 
     -- Add a view to display the *current* status of any record
     CREATE VIEW @extschema@.check_current AS(
