@@ -43,7 +43,7 @@ BEGIN
     ) RETURNING id INTO trap_id;
 
     -- Set the trap record to be suspended
-    INSERT INTO @extschema@.check_tracker(core_id, is_suspended, notes) VALUES (old.id, true, 'Trap record');
+    INSERT INTO @extschema@.check_tracker(core_id, is_suspended, notes) VALUES (trap_id, true, 'Trap record');
 
     -- Set modification details
     NEW.modified_by = session_user;
