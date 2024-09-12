@@ -43,7 +43,7 @@ BEGIN
     ) RETURNING id INTO trap_id;
 
     -- Set the trap record to be suspended
-    INSERT INTO @extschema@.check_tracker(core_id, is_suspended, notes) VALUES (old.core_id, true, 'Trap record');
+    INSERT INTO @extschema@.check_tracker(core_id, is_suspended, notes) VALUES (trap_id, true, 'Trap record');
 
     -- Set modification details
     NEW.modified_by = session_user;
@@ -52,35 +52,38 @@ BEGIN
     -- Now release the modified version so that the changes are applied to it
     RETURN NEW;
 END;
-$BODY$;-- This procedure is designed to create a 'stub' table that can be expanded upon later by the user.
--- It is also expected that people will want to copy the query directly from here, so this procedure
--- will be heavily documented here as well as in docs/procedure/create_soft_stub.md
-
-CREATE OR REPLACE PROCEDURE create_soft_stub(
-    tablename TEXT
-)
+$BODY$;CREATE OR REPLACE PROCEDURE create_check_tracker()
 LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
 
 BEGIN
-    EXECUTE format('
-        CREATE TABLE IF NOT EXISTS @extschema@.%I (
-            id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-            core_id integer NOT NULL REFERENCES @extschema@.core(id) -- Lock the fk to the pk directly
-        );',
-        tablename
+    CREATE TABLE IF NOT EXISTS @extschema@.check_tracker(
+        id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+        core_id integer NOT NULL REFERENCES @extschema@.core(id), -- Lock the fk to the pk directly
+        is_suspended boolean NOT NULL,
+        timestamp timestamp with time zone NOT NULL DEFAULT now(),
+        notes text
     );
 
-    -- index on the core_id to make things faster
-    EXECUTE format('
-        CREATE INDEX ON @extschema@.%I (core_id);
-        ',
-        tablename
+    CREATE INDEX check_tracker_id ON @extschema@.check_tracker(id);
+    CREATE INDEX check_tracker_core_id ON @extschema@.check_tracker(core_id);
+
+    -- Add a view to display the *current* status of any record
+    CREATE VIEW @extschema@.check_current AS(
+        WITH pick AS (
+            SELECT max(id) as id
+            FROM @extschema@.check_tracker
+            GROUP BY core_id
+        )
+
+        SELECT core_id, is_suspended
+        FROM @extschema@.check_tracker
+        JOIN pick on check_tracker.id=pick.id
     );
-    
 END;
-$BODY$;CREATE OR REPLACE PROCEDURE create_core()
+$BODY$;
+CREATE OR REPLACE PROCEDURE create_core()
 LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
@@ -146,34 +149,32 @@ CREATE TRIGGER core_update_change
     FOR EACH ROW
     EXECUTE FUNCTION @extschema@.core_update_trigger();
 END;
-$BODY$;CREATE OR REPLACE PROCEDURE create_check_tracker()
+$BODY$;-- This procedure is designed to create a 'stub' table that can be expanded upon later by the user.
+-- It is also expected that people will want to copy the query directly from here, so this procedure
+-- will be heavily documented here as well as in docs/procedure/create_soft_stub.md
+
+CREATE OR REPLACE PROCEDURE create_soft_stub(
+    tablename TEXT
+)
 LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
 
 BEGIN
-    CREATE TABLE IF NOT EXISTS @extschema@.check_tracker(
-        id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
-        core_id integer NOT NULL REFERENCES @extschema@.core(id), -- Lock the fk to the pk directly
-        is_suspended boolean NOT NULL,
-        timestamp timestamp with time zone NOT NULL DEFAULT now(),
-        notes text
+    EXECUTE format('
+        CREATE TABLE IF NOT EXISTS @extschema@.%I (
+            id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+            core_id integer NOT NULL REFERENCES @extschema@.core(id) -- Lock the fk to the pk directly
+        );',
+        tablename
     );
 
-    CREATE INDEX check_tracker_id ON @extschema@.check_tracker(id);
-    CREATE INDEX check_tracker_core_id ON @extschema@.check_tracker(core_id);
-
-    -- Add a view to display the *current* status of any record
-    CREATE VIEW @extschema@.check_current AS(
-        WITH pick AS (
-            SELECT max(id) as id
-            FROM @extschema@.check_tracker
-            GROUP BY core_id
-        )
-
-        SELECT core_id, is_suspended
-        FROM @extschema@.check_tracker
-        JOIN pick on check_tracker.id=pick.id
+    -- index on the core_id to make things faster
+    EXECUTE format('
+        CREATE INDEX ON @extschema@.%I (core_id);
+        ',
+        tablename
     );
+    
 END;
 $BODY$;
